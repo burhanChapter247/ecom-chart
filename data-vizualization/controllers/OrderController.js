@@ -1,5 +1,31 @@
 "use strict";
-const { ProductModel, OrderModel } = require("../models/index");
+const { ProductModel, OrderModel, OrderTestModel } = require("../models/index");
+
+/**
+ * Generate 5 fake orders
+ * @param { req, res }
+ * @returns JsonResponse
+ */
+const generateOrder = async (req, res, next) => {
+  try {
+    // next() or
+    const order = await OrderTestModel.generateOrder();
+
+    return res.status(200).json({
+      success: order,
+      message: "Orders Generated",
+      data: [],
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message:
+        "We are having some error while completing your request. Please try again after some time.",
+      error: error,
+    });
+  }
+};
 
 /**
  * group orders and get total sale amount (date wise) from last week
@@ -262,4 +288,5 @@ module.exports = {
   compareSales,
   salesAmount,
   compareOrderCount,
+  generateOrder,
 };

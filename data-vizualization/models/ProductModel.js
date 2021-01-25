@@ -41,4 +41,10 @@ ProductModelSchema.pre("findOneAndUpdate", function () {
   this.update({}, { $set: { updatedAt: Date.now() } });
 });
 
+//get random product
+ProductModelSchema.statics.getRandom = async function () {
+  var count = await this.countDocuments();
+  return await this.findOne().skip(Math.floor(Math.random() * count));
+};
+
 module.exports = mongoose.model("Product", ProductModelSchema);

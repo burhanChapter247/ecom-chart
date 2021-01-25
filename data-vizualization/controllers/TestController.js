@@ -2,46 +2,27 @@
 
 const { ProductModel, OrderModel, OrderTestModel } = require("../models/index");
 
-/**
- * Get product chart data
- * @param { req, res }
- * @returns JsonResponse
- */
 const chartData = async (req, res, next) => {
   try {
     // next() or
     let products = await ProductModel.aggregate([
       {
         $lookup: {
-          from: "orders",
+          from: "test_orders",
           localField: "_id",
-          foreignField: "products",
+          foreignField: "products.product_id",
           as: "inventory_docs",
         },
       },
       {
         $project: {
-          _id: 0,
+          _id: "$_id",
           title: "$title",
           numOfOrders: { $size: "$inventory_docs" },
-          products: "$inventory_docs",
+          orders: "$inventory_docs",
         },
       },
     ]);
-
-    /* let products = await ProductModel.find({}).limit(20);
-    let result = [];
-    for (const prod of products) {
-      let ordercount = await OrderModel.countDocuments({
-        "products.sku": prod.sku,
-      });
-      result.push({
-        title: prod.title,
-        sku: prod.sku,
-        price: prod.price,
-        count: ordercount,
-      });
-    } */
 
     return res.status(200).json({
       success: true,
