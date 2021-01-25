@@ -20,7 +20,9 @@ const salesAmount = async (req, res, next) => {
       },
       {
         $group: {
-          _id: "$orderCreatedAt",
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$orderCreatedAt" },
+          },
           totalSaleAmount: { $sum: "$netAmount" },
         },
       },
@@ -173,107 +175,74 @@ const compareSales = async (req, res, next) => {
 };
 
 /**
- * Get all record
+ * compare orders count from the past week
  * @param { req, res }
  * @returns JsonResponse
  */
-const index = async (req, res, next) => {
+const compareOrderCount = async (req, res, next) => {
   try {
     // next() or
-    return res.status(200).json({
-      success: true,
-      message: "Data fetched successfully.",
-      data: [],
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message:
-        "We are having some error while completing your request. Please try again after some time.",
-      error: error,
-    });
-  }
-};
-/**
- * Create a record
- * @param { req, res }
- * @returns JsonResponse
- */
-const store = async (req, res, next) => {
-  try {
-    // next() or
-    return res.status(200).json({
-      success: true,
-      message: "Data saved successfully.",
-      data: [],
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message:
-        "We are having some error while completing your request. Please try again after some time.",
-      error: error,
-    });
-  }
-};
+    //fetching Past week's (1 week before last week) data
+    let orderPast = await OrderModel.aggregate([
+      {
+        $match: {
+          orderCreatedAt: {
+            $gte: new Date("2021-01-01"),
+            $lte: new Date("2021-01-07"),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$orderCreatedAt" },
+          },
+          totalOrderCount: { $sum: 1 },
+        },
+      },
+    ]);
 
-/**
- * Get only single record
- * @param { req, res }
- * @returns JsonResponse
- */
-const details = async (req, res, next) => {
-  try {
-    // next() or
+    //fetching Last week's data
+    let orderLast = await OrderModel.aggregate([
+      {
+        $match: {
+          orderCreatedAt: {
+            $gte: new Date("2021-01-08"),
+            $lte: new Date("2021-01-14"),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$orderCreatedAt" },
+          },
+          totalOrderCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    //calculating increase or decrease orders from the past week
+    let orderCountPast = 0;
+    for (const ord of orderPast) {
+      orderCountPast += ord.totalOrderCount;
+    }
+
+    let orderCountLast = 0;
+    for (const ord of orderLast) {
+      orderCountLast += ord.totalOrderCount;
+    }
+
+    let returnData = {
+      orderCountPast,
+      orderCountLast,
+      diff: orderCountLast - orderCountPast,
+    };
+
     return res.status(200).json({
       success: true,
       message: "Details fatched successfully.",
-      data: {},
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message:
-        "We are having some error while completing your request. Please try again after some time.",
-      error: error,
-    });
-  }
-};
-
-/**
- * update a record
- * @param { req, res }
- * @returns JsonResponse
- */
-const update = async (req, res, next) => {
-  try {
-    // next() or
-    return res.status(200).json({
-      success: true,
-      message: "Data updated successfully.",
-      data: [],
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message:
-        "We are having some error while completing your request. Please try again after some time.",
-      error: error,
-    });
-  }
-};
-/**
- * Destroy a record
- * @param { req, res }
- * @returns JsonResponse
- */
-const destroy = async (req, res, next) => {
-  try {
-    // next() or
-    return res.status(200).json({
-      success: true,
-      message: "Data deleted successfully.",
-      data: [],
+      data: returnData,
     });
   } catch (error) {
     return res.status(500).json({
@@ -292,9 +261,5 @@ module.exports = {
   OrderCount,
   compareSales,
   salesAmount,
-  index,
-  store,
-  details,
-  update,
-  destroy,
+  compareOrderCount,
 };
